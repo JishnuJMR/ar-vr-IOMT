@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AR/VR Smart Healthcare Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ── CSS Variables ── */
+  :root {
+    --bg-deep:      #050d14;
+    --bg-panel:     #091623;
+    --bg-card:      #0c1f30;
+    --border:       #1a3a52;
+    --border-glow:  #1e6fa8;
+    --accent:       #00c8ff;
+    --accent2:      #00ff9d;
+    --accent3:      #ff4d6a;
+    --text-bright:  #e8f4ff;
+    --text-mid:     #7ab8d4;
+    --text-dim:     #3a6b88;
+    --green:        #00ff9d;
+    --yellow:       #ffd166;
+    --red:          #ff4d6a;
+    --mono:         'Share Tech Mono', monospace;
+    --serif:        'Cinzel', serif;
+    --sans:         'Raleway', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-bright);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -20%, #0a2a4a 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,200,255,.04) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,200,255,.04) 40px);
+  }
+
+  /* ── Scanline overlay ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.12) 2px,
+      rgba(0,0,0,.12) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(180deg, rgba(0,100,180,.12) 0%, transparent 100%);
+    position: relative;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 50%;
+    transform: translateX(-50%);
+    width: 240px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .header-badge {
+    font-family: var(--mono);
+    font-size: .65rem;
+    letter-spacing: .18em;
+    color: var(--accent);
+    background: rgba(0,200,255,.08);
+    border: 1px solid rgba(0,200,255,.2);
+    padding: 3px 14px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(1.1rem, 3vw, 1.7rem);
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-align: center;
+    color: var(--text-bright);
+    line-height: 1.3;
+    text-shadow: 0 0 40px rgba(0,200,255,.4);
+  }
+
+  .sub {
+    font-family: var(--sans);
+    font-weight: 300;
+    font-size: .78rem;
+    letter-spacing: .12em;
+    color: var(--text-mid);
+    text-transform: uppercase;
+  }
+
+  /* ── Layout ── */
+  main {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 36px 24px 60px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 700px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  /* ── Panel base ── */
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: .65rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 10px 16px;
+    background: rgba(0,200,255,.05);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* ── Control Panel ── */
+  .control-body {
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .field-label {
+    font-family: var(--mono);
+    font-size: .6rem;
+    letter-spacing: .16em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .sensor-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sensor-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: var(--bg-card);
+  }
+
+  .sensor-option:hover {
+    border-color: var(--border-glow);
+    background: rgba(0,200,255,.04);
+  }
+
+  .sensor-option input[type="radio"] { display: none; }
+
+  .sensor-option.selected {
+    border-color: var(--accent);
+    background: rgba(0,200,255,.08);
+  }
+
+  .radio-box {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--text-dim);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color .2s;
+  }
+
+  .sensor-option.selected .radio-box {
+    border-color: var(--accent);
+  }
+
+  .radio-box::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity .2s;
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  .sensor-option.selected .radio-box::after { opacity: 1; }
+
+  .sensor-name {
+    font-family: var(--sans);
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--text-bright);
+  }
+
+  .sensor-desc {
+    font-size: .67rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    margin-top: 1px;
+  }
+
+  /* ── Buttons ── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: 1px solid;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+
+  .btn:hover::before { opacity: .06; }
+  .btn:active::before { opacity: .14; }
+
+  .btn-start {
+    background: transparent;
+    border-color: var(--green);
+    color: var(--green);
+    text-shadow: 0 0 10px var(--green);
+    box-shadow: 0 0 14px rgba(0,255,157,.1), inset 0 0 14px rgba(0,255,157,.04);
+  }
+
+  .btn-start:disabled {
+    border-color: var(--text-dim);
+    color: var(--text-dim);
+    text-shadow: none;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .btn-stop {
+    background: transparent;
+    border-color: var(--red);
+    color: var(--red);
+    text-shadow: 0 0 10px var(--red);
+    box-shadow: 0 0 14px rgba(255,77,106,.1), inset 0 0 14px rgba(255,77,106,.04);
+  }
+
+  .btn-stop:disabled {
+    border-color: var(--text-dim);
+    color: var(--text-dim);
+    text-shadow: none;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: .7rem;
+  }
+
+  .status-indicator {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-dim);
+    transition: background .3s, box-shadow .3s;
+  }
+
+  .status-indicator.active {
+    background: var(--green);
+    box-shadow: 0 0 10px var(--green);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  .status-indicator.stopped {
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 6px var(--green); }
+    50%       { box-shadow: 0 0 16px var(--green); }
+  }
+
+  .status-text { color: var(--text-mid); }
+  .status-value { color: var(--text-bright); margin-left: auto; }
+
+  /* ── Vitals mini cards ── */
+  .vitals-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .vital-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 10px 8px;
+    text-align: center;
+  }
+
+  .vital-icon {
+    font-size: 1.1rem;
+    margin-bottom: 3px;
+  }
+
+  .vital-val {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .vital-unit {
+    font-family: var(--mono);
+    font-size: .58rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    letter-spacing: .08em;
+  }
+
+  .vital-name {
+    font-size: .6rem;
+    color: var(--text-dim);
+    font-family: var(--sans);
+    margin-top: 4px;
+    font-weight: 300;
+    letter-spacing: .06em;
+  }
+
+  /* ── Log Panel ── */
+  .log-panel { display: flex; flex-direction: column; height: 520px; }
+
+  .log-toolbar {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,200,255,.02);
+  }
+
+  .log-count {
+    font-family: var(--mono);
+    font-size: .62rem;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  .btn-sm {
+    font-family: var(--mono);
+    font-size: .58rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-mid);
+    padding: 4px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+  }
+
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+  #log-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: .72rem;
+    line-height: 1.7;
+    color: var(--text-mid);
+    scroll-behavior: smooth;
+  }
+
+  #log-output::-webkit-scrollbar { width: 4px; }
+  #log-output::-webkit-scrollbar-track { background: transparent; }
+  #log-output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-line {
+    display: flex;
+    gap: 10px;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(26,58,82,.3);
+    animation: fadeIn .2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; } }
+
+  .log-ts { color: var(--text-dim); flex-shrink: 0; }
+
+  .log-src-temp  { color: var(--yellow); }
+  .log-src-max   { color: var(--accent); }
+  .log-src-info  { color: var(--text-dim); }
+  .log-src-err   { color: var(--red); }
+
+  .log-msg { color: var(--text-mid); word-break: break-all; }
+  .log-msg .json-val { color: #c3e88d; }
+  .log-msg .json-key { color: #89ddff; }
+  .log-msg .json-cond-normal { color: var(--green); }
+  .log-msg .json-cond-warn   { color: var(--yellow); }
+  .log-msg .json-cond-crit   { color: var(--red); }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: .6rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    letter-spacing: .1em;
+  }
+
+  /* ── Corner decorations ── */
+  .corner-tl, .corner-br {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-color: var(--accent);
+    border-style: solid;
+    opacity: .5;
+  }
+  .corner-tl { top: 0; left: 0; border-width: 1.5px 0 0 1.5px; }
+  .corner-br { bottom: 0; right: 0; border-width: 0 1.5px 1.5px 0; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <span class="header-badge">Medical Telemetry System v1.0</span>
+  <h1>AR/VR-Enabled Smart Healthcare Monitoring<br>and Emergency Response System</h1>
+  <span class="sub">Real-Time Sensor Simulation Interface</span>
+</header>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- ── Left: Controls ── -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <!-- Sensor selector -->
+    <div class="panel">
+      <div class="panel-title"><span class="dot"></span>Sensor Configuration</div>
+      <div class="control-body">
+        <div>
+          <div class="field-label">Select Sensor Module</div>
+          <div class="sensor-grid" id="sensor-grid">
+            <label class="sensor-option selected" data-val="3">
+              <input type="radio" name="sensor" value="3" checked />
+              <div class="radio-box"></div>
+              <div>
+                <div class="sensor-name">All Sensors</div>
+                <div class="sensor-desc">TEMP + SPO2 + HR</div>
+              </div>
+            </label>
+            <label class="sensor-option" data-val="1">
+              <input type="radio" name="sensor" value="1" />
+              <div class="radio-box"></div>
+              <div>
+                <div class="sensor-name">Body Temperature</div>
+                <div class="sensor-desc">Thermistor Module</div>
+              </div>
+            </label>
+            <label class="sensor-option" data-val="2">
+              <input type="radio" name="sensor" value="2" />
+              <div class="radio-box"></div>
+              <div>
+                <div class="sensor-name">MAX30100</div>
+                <div class="sensor-desc">SpO₂ + Heart Rate</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-start" id="btn-start" onclick="startSim()">▶ Start</button>
+          <button class="btn btn-stop"  id="btn-stop"  onclick="stopSim()" disabled>■ Stop</button>
+        </div>
+
+        <div class="status-bar">
+          <div class="status-indicator" id="status-dot"></div>
+          <span class="status-text">Status:</span>
+          <span class="status-value" id="status-text">Idle</span>
+        </div>
+      </div>
+      <div class="corner-tl"></div>
+      <div class="corner-br"></div>
+    </div>
+
+    <!-- Live vitals mini cards -->
+    <div class="panel">
+      <div class="panel-title"><span class="dot"></span>Live Readings</div>
+      <div style="padding:14px 14px 16px;">
+        <div class="vitals-row">
+          <div class="vital-card">
+            <div class="vital-icon">🌡️</div>
+            <div class="vital-val" id="v-temp">--.-</div>
+            <div class="vital-unit">°C</div>
+            <div class="vital-name">Temp</div>
+          </div>
+          <div class="vital-card">
+            <div class="vital-icon">🩸</div>
+            <div class="vital-val" id="v-spo2">---</div>
+            <div class="vital-unit">%</div>
+            <div class="vital-name">SpO₂</div>
+          </div>
+          <div class="vital-card">
+            <div class="vital-icon">❤️</div>
+            <div class="vital-val" id="v-hr">---</div>
+            <div class="vital-unit">bpm</div>
+            <div class="vital-name">Heart Rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /left col -->
+
+  <!-- ── Right: Log ── -->
+  <div class="panel log-panel">
+    <div class="panel-title"><span class="dot"></span>Telemetry Log Stream</div>
+    <div class="log-toolbar">
+      <button class="btn-sm" onclick="toggleAutoScroll()" id="btn-autoscroll">Auto-scroll ON</button>
+      <button class="btn-sm" onclick="clearLog()">Clear</button>
+      <span class="log-count" id="log-count">0 entries</span>
+    </div>
+    <div id="log-output">
+      <div style="color:var(--text-dim);font-family:var(--mono);font-size:.7rem;padding:20px 0 0;text-align:center;">
+        — Awaiting simulation start —
+      </div>
+    </div>
+    <div class="corner-tl"></div>
+    <div class="corner-br"></div>
+  </div>
+
+</main>
+
+<footer>AR/VR HEALTHCARE MONITORING SYSTEM &nbsp;·&nbsp; SENSOR TELEMETRY INTERFACE &nbsp;·&nbsp; ALL DATA SIMULATED</footer>
+
+<script>
+/* ── State ── */
+let sse = null;
+let autoScroll = true;
+let logCount = 0;
+let activeSensor = '3';
+
+/* ── Sensor radio selection ── */
+document.querySelectorAll('.sensor-option').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.sensor-option').forEach(x => x.classList.remove('selected'));
+    el.classList.add('selected');
+    el.querySelector('input').checked = true;
+    activeSensor = el.dataset.val;
+  });
+});
+
+/* ── Start ── */
+async function startSim() {
+  const res = await fetch('/start', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ selection: activeSensor })
+  });
+  const d = await res.json();
+  if (d.status === 'started' || d.status === 'already_running') {
+    setRunning(true, d.sensor || 'Sensors');
+    connectSSE();
+  }
+}
+
+/* ── Stop ── */
+async function stopSim() {
+  await fetch('/stop', { method: 'POST' });
+  setRunning(false);
+  if (sse) { sse.close(); sse = null; }
+}
+
+/* ── UI state ── */
+function setRunning(running, label) {
+  const dot   = document.getElementById('status-dot');
+  const txt   = document.getElementById('status-text');
+  const btnS  = document.getElementById('btn-start');
+  const btnSt = document.getElementById('btn-stop');
+
+  dot.className  = 'status-indicator ' + (running ? 'active' : 'stopped');
+  txt.textContent = running ? ('Running — ' + (label || '')) : 'Stopped';
+  btnS.disabled  = running;
+  btnSt.disabled = !running;
+}
+
+/* ── SSE connection ── */
+function connectSSE() {
+  if (sse) sse.close();
+  sse = new EventSource('/stream');
+  sse.onmessage = e => {
+    const d = JSON.parse(e.data);
+    appendLog(d.line);
+    tryUpdateVitals(d.line);
+  };
+  sse.onerror = () => {
+    // silently retry; browser handles reconnect
+  };
+}
+
+/* ── Log append ── */
+function appendLog(raw) {
+  const out = document.getElementById('log-output');
+
+  // First entry: clear placeholder
+  if (logCount === 0) out.innerHTML = '';
+
+  logCount++;
+  document.getElementById('log-count').textContent = logCount + ' entries';
+
+  const now = new Date();
+  const ts  = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3,'0');
+
+  // Determine source class
+  let srcClass = 'log-src-info';
+  let srcLabel = 'SYS';
+  if (raw.includes('[Body Temperature]')) { srcClass = 'log-src-temp'; srcLabel = 'TEMP'; }
+  else if (raw.includes('[MAX30100]'))     { srcClass = 'log-src-max';  srcLabel = 'MAX3'; }
+  else if (raw.includes('[ERROR]'))        { srcClass = 'log-src-err';  srcLabel = 'ERR'; }
+  else if (raw.includes('[INFO]'))         { srcClass = 'log-src-info'; srcLabel = 'INFO'; }
+
+  const msg = raw.replace(/\[Body Temperature\]|\[MAX30100\]|\[INFO\]|\[ERROR\]/g, '').trim();
+
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `
+    <span class="log-ts">${ts}</span>
+    <span class="${srcClass}">[${srcLabel}]</span>
+    <span class="log-msg">${syntaxHighlight(msg)}</span>
+  `;
+  out.appendChild(line);
+
+  if (autoScroll) out.scrollTop = out.scrollHeight;
+}
+
+/* ── Minimal JSON syntax highlight ── */
+function syntaxHighlight(txt) {
+  // If it looks like JSON, colorize
+  const jsonMatch = txt.match(/(\{.*\})/s);
+  if (!jsonMatch) return escHtml(txt);
+  const pre  = escHtml(txt.slice(0, jsonMatch.index));
+  const post = escHtml(txt.slice(jsonMatch.index + jsonMatch[0].length));
+  let j = escHtml(jsonMatch[0]);
+  // keys
+  j = j.replace(/&quot;(\w+)&quot;\s*:/g, '<span class="json-key">&quot;$1&quot;</span>:');
+  // numbers
+  j = j.replace(/(:\s*)([0-9.]+)/g, '$1<span class="json-val">$2</span>');
+  // strings — including condition labels
+  j = j.replace(/(:\s*)&quot;([^&]+?)&quot;/g, (_, pref, val) => {
+    const v = val.toLowerCase();
+    const cls = v.includes('normal') || v.includes('normal') ? 'json-cond-normal'
+              : v.includes('mild') || v.includes('acceptable') ? 'json-cond-warn'
+              : v.includes('severe') || v.includes('critical') || v.includes('vfib') || v.includes('moderate') ? 'json-cond-crit'
+              : 'json-val';
+    return `${pref}<span class="${cls}">&quot;${val}&quot;</span>`;
+  });
+  return pre + j + post;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Update vitals mini-cards ── */
+function tryUpdateVitals(raw) {
+  const jsonMatch = raw.match(/(\{.*\})/s);
+  if (!jsonMatch) return;
+  try {
+    const d = JSON.parse(jsonMatch[0]);
+    const t = d.telemetry || {};
+    if (t.temperature !== undefined)
+      document.getElementById('v-temp').textContent = t.temperature.value.toFixed(1);
+    if (t.spo2 !== undefined)
+      document.getElementById('v-spo2').textContent = t.spo2.value.toFixed(1);
+    if (t.heart_rate !== undefined)
+      document.getElementById('v-hr').textContent = t.heart_rate.value.toFixed(0);
+  } catch(_) {}
+}
+
+/* ── Helpers ── */
+function clearLog() {
+  document.getElementById('log-output').innerHTML =
+    '<div style="color:var(--text-dim);font-family:var(--mono);font-size:.7rem;padding:20px 0 0;text-align:center;">— Log cleared —</div>';
+  logCount = 0;
+  document.getElementById('log-count').textContent = '0 entries';
+}
+
+function toggleAutoScroll() {
+  autoScroll = !autoScroll;
+  document.getElementById('btn-autoscroll').textContent =
+    'Auto-scroll ' + (autoScroll ? 'ON' : 'OFF');
+}
+
+/* ── Poll status on load (in case server was already running) ── */
+(async function init() {
+  const r = await fetch('/status');
+  const d = await r.json();
+  if (d.running) {
+    setRunning(true, 'Sensors');
+    connectSSE();
+  }
+})();
+</script>
+</body>
+</html>
